@@ -1,7 +1,7 @@
 # @Author: archer
 # @Date:   2019-08-02T13:11:00+01:00
 # @Last modified by:   archer
-# @Last modified time: 2020-10-20T23:49:30+01:00
+# @Last modified time: 2020-10-21T18:10:42+01:00
 
 # Maintainer: George Raven <GeorgeRavenCommunity AT pm dot me>
 pkgname=mesos-git
@@ -17,7 +17,10 @@ groups=()
 depends=("python" "jre-openjdk-headless")
 makedepends=("git"
 						 "make"
-						 "cmake")
+						 "cmake"
+						 "apr"
+						 "subversion"
+						 "grpc")
 optdepends=()
 provides=("mesos")
 conflicts=()
@@ -30,23 +33,26 @@ noextract=()
 md5sums=('SKIP')
 
 pkgver() {
+	# standard version from tag or fallback from revisions if possible
 	cd "${srcdir}/${_pkgsrcname}"
-	printf "%s" "$(git describe --long | sed 's/\([^-]*-\)g/r\1/;s/-/./g')"
+  ( set -o pipefail
+    git describe --long 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  )
 }
 
 prepare() {
 	cd "${srcdir}/${_pkgsrcname}"
-	git checkout ${_branch} # get off of makepkg branch
-	./bootstrap
-	mkdir build
+	git checkout ${_branch}
 }
 
 build() {
-	# build
+	cd "${srcdir}/${_pkgsrcname}"
+	./bootstrap
+	mkdir build
 	cd "${srcdir}/${_pkgsrcname}/build"
-	../configure
-	make
-	make check
+	cmake ..
+	cmake --build .
 }
 
 check() {
